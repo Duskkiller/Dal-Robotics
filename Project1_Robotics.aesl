@@ -84,7 +84,7 @@ onevent prox
 				callsub left
 			elseif (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE)  then
 				callsub lost
-			else if (prox.ground.delta[0] &lt; TABLE and prox.ground.delta[1] &lt; TABLE) then
+			elseif (prox.ground.delta[0] &lt; TABLE and prox.ground.delta[1] &lt; TABLE) then
 				direction = FORWARD #this might be bugged
 				callsub forward
 			end
@@ -102,8 +102,26 @@ onevent prox
 		if prox.ground.delta[0] > THRESHOLD+100 and prox.ground.delta[1] > THRESHOLD +100 		then
 			timer.period[0] = TURN_PERIOD-50
 		end
+	elseif prox.horizontal[3]>TURNINGP then
+		state = AVOID
+		callsub hardRight
+		if  prox.ground.delta[0]>THRESHOLD+100 and prox.ground.delta[1]>THRESHOLD+100 				then
+			timer.period[0] = TURN_PERIOD+150	
+		end
+	elseif prox.horizontal[0]>TURNINGP-1500 then
+		state = AVOID
+		callsub hardRight
+		if  prox.ground.delta[0]> THRESHOLD+100 and prox.ground.delta[1]>THRESHOLD+100 				then
+			timer.period[0] = TURN_PERIOD-100
+		end
 	end
-end</node>
+onevent timer0
+	if  state == AVOID then
+		timer.period[1] = 0
+		timer.period[0] = 0
+		state = AVOID
+		callsub hardLeft
+	end</node>
 
 
 </network>
