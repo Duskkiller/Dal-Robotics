@@ -8,8 +8,8 @@
 <!--list of constants-->
 <constant value="0" name="STOPPED"/>
 <constant value="1" name="FORWARD"/>
-<constant value="2" name="LEFT"/>
-<constant value="3" name="RIGHT"/>
+<constant value="-1" name="LEFT"/>
+<constant value="1" name="RIGHT"/>
 <constant value="4" name="LEFT1"/>
 <constant value="5" name="RIGHT1"/>
 <constant value="6" name="LOST"/>
@@ -60,8 +60,10 @@ sub hardRight
 	motor.right.target = -TARGET
 	call leds.top(255, 255, 76)#yellow
 sub hardLeft
-	motor.left.target = -TARGET
-	motor.right.target = TARGET
+	motor.left.target = TARGET * direction
+	motor.right.target = -TARGET * direction
+sub lost
+	motor.left.target = TARGET 
 
 ################END OF STATES######################################
 onevent button.forward
@@ -74,14 +76,16 @@ onevent button.backward
 onevent prox 
 	if  state !=STOPPED then
 		if  (state == NORMAL) then
-			if  (prox.ground.delta[1] &lt; TABLE) then
+			if  (prox.ground.delta[1] > TABLE) then
 				direction = RIGHT
 				callsub right
-			elseif  (prox.ground.delta[0] &lt; TABLE) then
+			elseif  (prox.ground.delta[0] > TABLE) then
 				direction = LEFT
 				callsub left
-			elseif (prox.ground.delta[0] &lt; TABLE and prox.ground.delta[1] &lt; TABLE)  then
-				direction = FORWARD
+			elseif (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE)  then
+				callsub lost
+			else if (prox.ground.delta[0] &lt; TABLE and prox.ground.delta[1] &lt; TABLE) then
+				direction = FORWARD #this might be bugged
 				callsub forward
 			end
 		end
@@ -98,7 +102,8 @@ onevent prox
 		if prox.ground.delta[0] > THRESHOLD+100 and prox.ground.delta[1] > THRESHOLD +100 		then
 			timer.period[0] = TURN_PERIOD-50
 		end
-	end</node>
+	end
+end</node>
 
 
 </network>
