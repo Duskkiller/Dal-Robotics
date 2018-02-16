@@ -39,7 +39,6 @@ var prevdir
 motor.left.target = 0
 motor.right.target = 0
 timer.period[0] = 0
-timer.period[1] = 0
 
 sub forward
 	motor.left.target = TARGET
