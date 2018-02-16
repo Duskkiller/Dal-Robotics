@@ -25,6 +25,7 @@
 <constant value="250" name="TURNTARGET"/>
 <constant value="69" name="AVOID"/>
 <constant value="9" name="NORMAL"/>
+<constant value="6969" name="CURVE"/>
 
 
 <!--show keywords state-->
@@ -34,6 +35,7 @@
 <!--node thymio-II-->
 <node nodeId="1" name="thymio-II">var state = STOPPED
 var direction
+var prevdir
 motor.left.target = 0
 motor.right.target = 0
 timer.period[0] = 0
@@ -60,10 +62,20 @@ sub hardRight
 	motor.right.target = -TARGET
 	call leds.top(255, 255, 76)#yellow
 sub hardLeft
-	motor.left.target = TARGET * direction
-	motor.right.target = -TARGET * direction
+	motor.left.target = TARGET
+	motor.right.target = TARGET2
 sub lost
-	motor.left.target = TARGET 
+	if  state != AVOID or state != CURVE then
+		if prevdir == LEFT then
+			motor.left.target=TARGET-400
+			motor.right.target=TARGET
+		end
+		if prevdir == RIGHT then
+			motor.left.target=TARGET	
+			motor.right.target=TARGET-400
+		end
+		
+	end
 
 ################END OF STATES######################################
 onevent button.forward
@@ -76,50 +88,55 @@ onevent button.backward
 onevent prox 
 	if  state !=STOPPED then
 		if  (state == NORMAL) then
-			if  (prox.ground.delta[1] > TABLE) then
+			if  (prox.ground.delta[1] &lt; THRESHOLD) and (direction != RIGHT) then
 				direction = RIGHT
 				callsub right
-			elseif  (prox.ground.delta[0] > TABLE) then
+				prevdir = RIGHT
+			end
+			if  (prox.ground.delta[0] &lt; THRESHOLD) and (direction != LEFT) then
 				direction = LEFT
 				callsub left
-			elseif (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE)  then
-				callsub lost
-			elseif (prox.ground.delta[0] &lt; TABLE and prox.ground.delta[1] &lt; TABLE) then
-				direction = FORWARD #this might be bugged
-				callsub forward
+				prevdir = LEFT
 			end
+			if (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE)  then
+				callsub lost
+			end
+			#if (prox.ground.delta[0] &lt; TABLE and prox.ground.delta[1] &lt; TABLE) then
+				#direction = FORWARD #this might be bugged
+				#callsub forward
+			#end
 		end
 	end
 	if prox.horizontal[2]>TURNINGP-1500 then
-		state = AVOID
+		direction = AVOID
 		callsub hardRight
 		if  prox.ground.delta[0] > THRESHOLD+50 and prox.ground.delta[1] > THRESHOLD+100 			then
 			timer.period[0]=TURN_PERIOD
 		end
 	elseif prox.horizontal[1]>TURNINGP then
-		state = AVOID
+		direction = AVOID
 		callsub hardRight
 		if prox.ground.delta[0] > THRESHOLD+100 and prox.ground.delta[1] > THRESHOLD +100 		then
 			timer.period[0] = TURN_PERIOD-50
 		end
 	elseif prox.horizontal[3]>TURNINGP then
-		state = AVOID
+		direction = AVOID
 		callsub hardRight
 		if  prox.ground.delta[0]>THRESHOLD+100 and prox.ground.delta[1]>THRESHOLD+100 				then
 			timer.period[0] = TURN_PERIOD+150	
 		end
 	elseif prox.horizontal[0]>TURNINGP-1500 then
-		state = AVOID
+		direction = AVOID
 		callsub hardRight
 		if  prox.ground.delta[0]> THRESHOLD+100 and prox.ground.delta[1]>THRESHOLD+100 				then
 			timer.period[0] = TURN_PERIOD-100
 		end
 	end
 onevent timer0
-	if  state == AVOID then
+	if  direction == AVOID then
 		timer.period[1] = 0
 		timer.period[0] = 0
-		state = AVOID
+		direction = CURVE
 		callsub hardLeft
 	end</node>
 
