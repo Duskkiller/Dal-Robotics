@@ -39,7 +39,6 @@ var prevdir
 motor.left.target = 0
 motor.right.target = 0
 timer.period[0] = 0
-timer.period[1] = 0
 
 sub forward
 	motor.left.target = TARGET
@@ -65,6 +64,9 @@ sub hard
 sub curveLeft
 	motor.left.target = TARGET
 	motor.right.target = TARGET2
+sub curveRight
+	motor.left.target = TARGET2
+	motor.right.target = TARGET
 sub lost
 	if  state != AVOID or state != CURVE then
 		if direction == LEFT then
@@ -131,12 +133,23 @@ onevent prox
 			state = AVOID
 			callsub hard
 		end
+		
+		if state == CURVE then
+			if  prox.ground.delta[0] > THRESHOLD then
+				state = NORMAL #revert back to line searching.
+			end
+		end
 	end
 	######################
 onevent timer0 #used for 90
-	if  direction == AVOID then
-		direction = CURVE
-		callsub curveLeft
+	if  state == AVOID then
+		if  direction == LEFT then
+			state = CURVE
+			callsub curveLeft
+		elseif  direction == RIGHT then
+			state = CURVE
+			callsub curveRight
+		end
 	end</node>
 
 
