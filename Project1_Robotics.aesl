@@ -26,6 +26,7 @@
 <constant value="69" name="AVOID"/>
 <constant value="9" name="NORMAL"/>
 <constant value="6969" name="CURVE"/>
+<constant value="6968" name="TEMPFORWARD"/>
 
 
 <!--show keywords state-->
@@ -142,15 +143,23 @@ onevent prox
 	end
 	######################
 onevent timer0 #used for 90
-	if  state == AVOID then
+	if  state == AVOID then #so it doesn't trigger off the line. This might cause problems when it comes to corner blocks
+		motor.left.target = TARGET
+		motor.right.target = TARGET
+		timer.period[0] = 600
+		state = TEMPFORWARD
+	end
+	if  state == TEMPFORWARD then
 		if  direction == LEFT then
 			state = CURVE
-			callsub curveLeft
+			callsub curveRight
 		elseif  direction == RIGHT then
 			state = CURVE
-			callsub curveRight
+			callsub curveLeft
 		end
-	end</node>
+	end
+		
+	</node>
 
 
 </network>
