@@ -70,6 +70,12 @@ sub curveLeft
 sub curveRight
 	motor.left.target = TARGET2
 	motor.right.target = TARGET
+sub harderCurveLeft
+	motor.left.target = 200
+	motor.right.target = 100
+sub harderCurveRight
+	motor.left.target = 100
+	motor.right.target = 200
 sub lost
 	if  state != AVOID or state != CURVE then
 		if direction == LEFT then
@@ -132,15 +138,15 @@ onevent prox
 			SOSused = 0
 			state = NORMAL #revert back to line searching
 		end
-		if  prox.horizontal[1] > THRESHOLD + 200 or prox.horizontal[2] > THRESHOLD + 200 then
+		if  prox.horizontal[0] > 1 then
 			if  SOSused != 1 then
 				SOSused = 1
-				callsub curveLeft
+				callsub harderCurveLeft
 			end
-		elseif  prox.horizontal[3] > THRESHOLD + 200 or prox.horizontal[4] > THRESHOLD + 200 then
+		elseif  prox.horizontal[4] > 1 then
 			if  SOSused != 1 then
 				SOSused = 1
-				callsub curveRight
+				callsub harderCurveRight
 			end
 		end
 	end
@@ -149,7 +155,7 @@ onevent timer0 #used for 90
 	if  state == AVOID then #so it doesn't trigger off the line. This might cause problems when it comes to corner blocks
 		motor.left.target = TARGET
 		motor.right.target = TARGET
-		timer.period[0] = 1000
+		timer.period[0] = 600
 		state = TEMPFORWARD
 	else if  state == TEMPFORWARD then
 		if  direction == LEFT or prevdir == LEFT then
