@@ -27,6 +27,7 @@
 <constant value="9" name="NORMAL"/>
 <constant value="6969" name="CURVE"/>
 <constant value="6968" name="TEMPFORWARD"/>
+<constant value="505" name="SOS"/>
 
 
 <!--show keywords state-->
@@ -37,6 +38,7 @@
 <node nodeId="1" name="thymio-II">var state = STOPPED
 var direction
 var prevdir
+var SOSused
 motor.left.target = 0
 motor.right.target = 0
 timer.period[0] = 0
@@ -106,38 +108,39 @@ onevent prox
 		end
 	
 	##################
-		if prox.horizontal[2]>TURNINGP-1500 then
-			state = AVOID
-			callsub hard
-			if  prox.ground.delta[0] > THRESHOLD+50 and prox.ground.delta[1] > THRESHOLD+100 then
+		if  state != CURVE and state != AVOID and state != TEMPFORWARD then
+			if prox.horizontal[2] > TURNINGP-1500 then
+				state = AVOID
 				timer.period[0]=TURN_PERIOD
-			end
-		elseif prox.horizontal[1]>TURNINGP then
-			state = AVOID
-			callsub hard
-			if prox.ground.delta[0] > THRESHOLD+100 and prox.ground.delta[1] > THRESHOLD +100 then
+				callsub hard
+				
+			elseif prox.horizontal[1] > TURNINGP or prox.horizontal[3] > TURNINGP then
+				state = AVOID
 				timer.period[0] = TURN_PERIOD-50
-			end
-		elseif prox.horizontal[3]>TURNINGP then
-			state = AVOID
-			callsub hard
-			if  prox.ground.delta[0]>THRESHOLD+100 and prox.ground.delta[1]>THRESHOLD+100 then
-				timer.period[0] = TURN_PERIOD+150	
-			end
-		elseif prox.horizontal[0]>TURNINGP-1500 then
-			state = AVOID
-			callsub hard
-			if  prox.ground.delta[0]> THRESHOLD+100 and prox.ground.delta[1]>THRESHOLD+100 	then
+				callsub hard
+				
+			elseif prox.horizontal[0] > TURNINGP-1500 or prox.horizontal[4] > TURNINGP-1500 then
+				state = AVOID
 				timer.period[0] = TURN_PERIOD-100
+				callsub hard
 			end
-		elseif prox.horizontal[4] > TURNINGP-1500 then
-			state = AVOID
-			callsub hard
 		end
-		
-		if state == CURVE then
-			if  prox.ground.delta[0] > THRESHOLD then
-				state = NORMAL #revert back to line searching.
+	end	
+	if state == CURVE then
+		if  prox.ground.delta[0] &lt; THRESHOLD or prox.ground.delta[1] &lt; THRESHOLD then
+			prevdir = NORMAL
+			SOSused = 0
+			state = NORMAL #revert back to line searching
+		end
+		if  prox.horizontal[1] > THRESHOLD + 200 or prox.horizontal[2] > THRESHOLD + 200 then
+			if  SOSused != 1 then
+				SOSused = 1
+				callsub curveLeft
+			end
+		elseif  prox.horizontal[3] > THRESHOLD + 200 or prox.horizontal[4] > THRESHOLD + 200 then
+			if  SOSused != 1 then
+				SOSused = 1
+				callsub curveRight
 			end
 		end
 	end
@@ -146,20 +149,21 @@ onevent timer0 #used for 90
 	if  state == AVOID then #so it doesn't trigger off the line. This might cause problems when it comes to corner blocks
 		motor.left.target = TARGET
 		motor.right.target = TARGET
-		timer.period[0] = 600
+		timer.period[0] = 1000
 		state = TEMPFORWARD
-	end
-	if  state == TEMPFORWARD then
-		if  direction == LEFT then
-			state = CURVE
-			callsub curveRight
-		elseif  direction == RIGHT then
+	else if  state == TEMPFORWARD then
+		if  direction == LEFT or prevdir == LEFT then
+			prevdir = LEFT
 			state = CURVE
 			callsub curveLeft
+		elseif  direction == RIGHT or prevdir == RIGHT then
+			prevdir = RIGHT
+			state = CURVE
+			callsub curveRight
 		end
 	end
-		
-	</node>
+	
+end#I don't know why this end is here, but we need it</node>
 
 
 </network>
