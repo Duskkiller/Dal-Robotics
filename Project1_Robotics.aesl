@@ -71,11 +71,11 @@ sub curveRight
 	motor.left.target = TARGET2
 	motor.right.target = TARGET
 sub harderCurveLeft
-	motor.left.target = 200
-	motor.right.target = 100
+	motor.left.target = TARGET
+	motor.right.target = TARGET
 sub harderCurveRight
-	motor.left.target = 100
-	motor.right.target = 200
+	motor.left.target = TARGET
+	motor.right.target = TARGET
 sub lost
 	if  state != AVOID or state != CURVE then
 		if direction == LEFT then
