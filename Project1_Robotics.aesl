@@ -37,11 +37,9 @@
 <!--node thymio-II-->
 <node nodeId="1" name="thymio-II">var state = STOPPED
 var direction
-var prevdir
 var SOSused
 motor.left.target = 0
 motor.right.target = 0
-timer.period[0] = 0
 
 sub forward
 	motor.left.target = TARGET
@@ -69,12 +67,6 @@ sub curveLeft
 	motor.right.target = TARGET2
 sub curveRight
 	motor.left.target = TARGET2
-	motor.right.target = TARGET
-sub harderCurveLeft
-	motor.left.target = TARGET
-	motor.right.target = TARGET
-sub harderCurveRight
-	motor.left.target = TARGET
 	motor.right.target = TARGET
 sub lost
 	if  state != AVOID or state != CURVE then
@@ -109,7 +101,17 @@ onevent prox
 				callsub left
 			end
 			if (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE)  then
+				state = LOST
 				callsub lost
+			end
+		end
+		if  state == LOST and (prox.ground.delta[1] &lt; THRESHOLD or prox.ground.delta[0] &lt; THRESHOLD) then
+			if  direction == LEFT then
+				direction = RIGHT
+				state = NORMAL
+			elseif  direction == RIGHT then
+				direction = LEFT
+				state = NORMAL
 			end
 		end
 	
@@ -148,15 +150,10 @@ onevent prox
 		end
 		
 		#SOS FUNCTION (too clsoe to wall so turn towards the line)
-		if  prox.horizontal[0] > 1 then
+		if  prox.horizontal[0] > 1 or prox.horizontal[4] > 1 then #note: this may need to be tinkered with for real life
 			if  SOSused != 1 then
 				SOSused = 1
-				callsub harderCurveLeft
-			end
-		elseif  prox.horizontal[4] > 1 then
-			if  SOSused != 1 then
-				SOSused = 1
-				callsub harderCurveRight
+				callsub forward
 			end
 		end
 		#END SOS FUNCTION
