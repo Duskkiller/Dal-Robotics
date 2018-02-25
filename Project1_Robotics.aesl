@@ -131,13 +131,23 @@ onevent prox
 				callsub hard
 			end
 		end
-	end	
+	end
+	
 	if state == CURVE then
 		if  prox.ground.delta[0] &lt; THRESHOLD or prox.ground.delta[1] &lt; THRESHOLD then
-			prevdir = NORMAL
+			if  SOSused == 0 then
+				#this will ensure that its going the right way
+				if  direction == LEFT then
+					direction = RIGHT 
+				elseif direction == RIGHT then
+					direction = LEFT
+				end
+			end
 			SOSused = 0
 			state = NORMAL #revert back to line searching
 		end
+		
+		#SOS FUNCTION (too clsoe to wall so turn towards the line)
 		if  prox.horizontal[0] > 1 then
 			if  SOSused != 1 then
 				SOSused = 1
@@ -149,7 +159,9 @@ onevent prox
 				callsub harderCurveRight
 			end
 		end
+		#END SOS FUNCTION
 	end
+	
 	######################
 onevent timer0 #used for 90
 	if  state == AVOID then #so it doesn't trigger off the line. This might cause problems when it comes to corner blocks
@@ -157,19 +169,16 @@ onevent timer0 #used for 90
 		motor.right.target = TARGET
 		timer.period[0] = 600
 		state = TEMPFORWARD
-	else if  state == TEMPFORWARD then
-		if  direction == LEFT or prevdir == LEFT then
-			prevdir = LEFT
+	elseif  state == TEMPFORWARD then
+		if  direction == LEFT then
 			state = CURVE
 			callsub curveLeft
-		elseif  direction == RIGHT or prevdir == RIGHT then
-			prevdir = RIGHT
+		elseif  direction == RIGHT then
 			state = CURVE
 			callsub curveRight
 		end
 	end
-	
-end#I don't know why this end is here, but we need it</node>
+	</node>
 
 
 </network>
