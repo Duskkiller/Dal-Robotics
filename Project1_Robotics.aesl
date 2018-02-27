@@ -43,8 +43,8 @@ motor.left.target = 0
 motor.right.target = 0
 
 sub forward
-	motor.left.target = TARGET
-	motor.right.target = TARGET
+	motor.left.target = 200
+	motor.right.target = 200
 	call leds.top(0,255,0)#green
 sub stopped
 	motor.left.target = 0
@@ -108,20 +108,22 @@ onevent prox
 				checking = 1
 			end
 		end
-		if  state == LOST and (prox.ground.delta[1] &lt; THRESHOLD or prox.ground.delta[0] &lt; THRESHOLD) then
-			checking = 0
-			timer.period[1] = 500
-			if  direction == LEFT then
-				direction = RIGHT
-				state = NORMAL
-			elseif  direction == RIGHT then
-				direction = LEFT
-				state = NORMAL
-			end
-		end
+		
 	
 	##################
 		if  state != CURVE and state != AVOID and state != TEMPFORWARD then
+			if  state == LOST and (prox.ground.delta[1] &lt; THRESHOLD or prox.ground.delta[0] &lt; THRESHOLD) then
+				checking = 0
+				timer.period[1] = 500
+				if  direction == LEFT then
+					direction = RIGHT
+					state = NORMAL
+				elseif  direction == RIGHT then
+					direction = LEFT
+					state = NORMAL
+				end
+			end
+			
 			if prox.horizontal[2] > TURNINGP-1500 then
 				state = AVOID
 				timer.period[0]=TURN_PERIOD
@@ -146,10 +148,13 @@ onevent prox
 				#this will ensure that its going the right way
 				if  direction == LEFT then
 					direction = RIGHT 
+					callsub hard
 				elseif direction == RIGHT then
 					direction = LEFT
+					callsub hard
 				end
 			end
+			callsub hard
 			SOSused = 0
 			state = NORMAL #revert back to line searching
 		end
@@ -157,6 +162,7 @@ onevent prox
 		#SOS FUNCTION (too clsoe to wall so turn towards the line)
 		if  prox.horizontal[0] > 1 or prox.horizontal[4] > 1 then #note: this may need to be tinkered with for real life
 			if  SOSused != 1 then
+				
 				SOSused = 1
 				callsub forward
 			end
