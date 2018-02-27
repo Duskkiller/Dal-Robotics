@@ -13,7 +13,7 @@
 <constant value="4" name="LEFT1"/>
 <constant value="5" name="RIGHT1"/>
 <constant value="6" name="LOST"/>
-<constant value="7" name="LOST1"/>
+<constant value="7" name="LOSTCHECK"/>
 <constant value="8" name="FORWARD1"/>
 <constant value="450" name="TARGET"/>
 <constant value="750" name="TABLE"/>
@@ -36,6 +36,7 @@
 
 <!--node thymio-II-->
 <node nodeId="1" name="thymio-II">var state = STOPPED
+var checking = 0
 var direction
 var SOSused
 motor.left.target = 0
@@ -69,6 +70,7 @@ sub curveRight
 	motor.left.target = TARGET2
 	motor.right.target = TARGET
 sub lost
+	call leds.top(255,0,0) #red
 	if  state != AVOID or state != CURVE then
 		if direction == LEFT then
 			motor.left.target=TARGET-400
@@ -84,7 +86,8 @@ sub lost
 ################END OF STATES######################################
 onevent button.forward
 	state = NORMAL
-	callsub forward
+	direction = LEFT
+	callsub left
 onevent button.backward
 	state = STOPPED
 	callsub stopped
@@ -101,11 +104,13 @@ onevent prox
 				callsub left
 			end
 			if (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE)  then
-				state = LOST
-				callsub lost
+				timer.period[1] = 300
+				checking = 1
 			end
 		end
 		if  state == LOST and (prox.ground.delta[1] &lt; THRESHOLD or prox.ground.delta[0] &lt; THRESHOLD) then
+			checking = 0
+			timer.period[1] = 500
 			if  direction == LEFT then
 				direction = RIGHT
 				state = NORMAL
@@ -175,7 +180,12 @@ onevent timer0 #used for 90
 			callsub curveRight
 		end
 	end
-	</node>
+
+onevent timer1
+	if checking == 1 then
+		state = LOST
+		callsub lost
+	end</node>
 
 
 </network>
