@@ -53,13 +53,14 @@ sub stopped
 	motor.left.target = 0
 	motor.right.target = 0
 	SOSused = 0
+	revert = 0
 	call leds.top(0,0,0)#no colour
 sub right #soft right
 	motor.left.target = TARGET
-	motor.right.target = TARGET-200
+	motor.right.target = TARGET-300
 	call leds.top(255, 179, 76)#orange
 sub left #soft left
-	motor.left.target = TARGET-200
+	motor.left.target = TARGET-300
 	motor.right.target = TARGET
 	call leds.top(232,12,229)#purple
 sub hard
@@ -76,11 +77,11 @@ sub curveRight
 sub lost
 	call leds.top(255,0,0) #red
 	if direction == LEFT then	
-		motor.left.target=TARGET - 400
+		motor.left.target=TARGET - 300
 		motor.right.target=TARGET 
 	elseif direction == RIGHT then
 		motor.left.target=TARGET 
-		motor.right.target=TARGET - 400
+		motor.right.target=TARGET - 300
 	end	
 
 
@@ -95,7 +96,7 @@ onevent button.backward
 
 onevent prox 
 	if  state !=STOPPED then
-		if  (state == NORMAL or state == FIX) then
+		if  (state == NORMAL and revert != 1) then
 			if  (prox.ground.delta[1] &lt; THRESHOLD) and (direction == LEFT) then
 				checking = 0
 				SOSused = 0
@@ -109,7 +110,7 @@ onevent prox
 				revert = 0
 				direction = LEFT
 				callsub left
-			elseif (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE and revert != 1) then
+			elseif (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE) then
 				timer.period[0] = 500
 				checking = 1
 			end
@@ -117,7 +118,7 @@ onevent prox
 	
 	##################
 		if  state != CURVE and state != AVOID and state != TEMPFORWARD and state != FORWARD1 then
-			if prox.horizontal[2] > TURNINGP-1500 then
+			if prox.horizontal[2] > TURNINGP then
 				state = AVOID
 				timer.period[0]=TURN_PERIOD
 				callsub hard
@@ -137,37 +138,50 @@ onevent prox
 	end
 	
 	if (prox.ground.delta[1] &lt; THRESHOLD or prox.ground.delta[0] &lt; THRESHOLD)then
-		if  state == FORWARD1 or state == CURVE then
+		if  state == FORWARD1 or state == CURVE or state == LOST then
+			
 			revert = 1
 			checking = 0
 			call leds.top(13,255,149)#light blue
 			#this will ensure that its going the right way
+			if  state == LOST then
+				timer.period[0] = 500
+			else
+				timer.period[0] = 1000
+			end
+			if  state == LOST then
+				if  direction == LEFT then
+					direction = RIGHT
+				elseif  direction == RIGHT then
+					direction = LEFT
+				end
+			end
 			state = FIX
-		
 			if direction == LEFT then
-				motor.left.target= 0
-				motor.right.target= TARGET
-				direction = RIGHT
+				callsub left
 			elseif direction == RIGHT then
-				motor.left.target= TARGET
-				motor.right.target= 0
-				direction = LEFT
+				callsub right
 			end
 			
-		elseif  state == LOST then
-			revert = 1
-			checking = 0
-			call leds.top(13,255,149) #light blue
-			state = FIX
-			if direction == LEFT then
-				motor.left.target= 150
-				motor.right.target= TARGET
-				direction = RIGHT
-			elseif direction == RIGHT then
-				motor.left.target= TARGET
-				motor.right.target= 150
-				direction = LEFT
-			end
+
+			state = NORMAL
+			
+		#elseif  state == LOST then
+		#	revert = 1
+		#	checking = 0
+		#	call leds.top(13,255,149) #light blue
+		#	state = FIX
+		#	if direction == LEFT then
+		#		motor.left.target= -50
+		#		motor.right.target= TARGET
+		#		direction = RIGHT
+		#	elseif direction == RIGHT then
+		#		motor.left.target= TARGET
+		#		motor.right.target= -50
+		#		direction = LEFT
+		#	end
+		#	timer.period[0] = 300
+		#	state = NORMAL
 			
 		end
 		
@@ -206,13 +220,13 @@ onevent timer0 #used for 90
 			state = CURVE
 			callsub curveRight
 		end
-	elseif  state == FIX then
-		state = NORMAL
-		
+	elseif  revert == 1 then
+		revert = 0
 	elseif checking == 1 and state == NORMAL then #grace period over for turns
 		state = LOST
 		callsub lost
 	end
+	
 </node>
 
 
