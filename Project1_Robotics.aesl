@@ -46,8 +46,8 @@ motor.left.target = 0
 motor.right.target = 0
 
 sub forward
-	motor.left.target = 300
-	motor.right.target = 300
+	motor.left.target = 350
+	motor.right.target = 350
 	call leds.top(0,255,0)#green
 sub stopped
 	motor.left.target = 0
@@ -97,21 +97,21 @@ onevent button.backward
 onevent prox 
 	if  state !=STOPPED then
 		if  (state == NORMAL and revert != 1) then
-			if  (prox.ground.delta[1] &lt; THRESHOLD) and (direction == LEFT) then
-				checking = 0
-				SOSused = 0
-				revert = 0
-				direction = RIGHT
-				callsub right
-				
-			elseif  (prox.ground.delta[0] &lt; THRESHOLD) and (direction == RIGHT) then
+			if  (prox.ground.delta[1] > TABLE) then
 				checking = 0
 				SOSused = 0
 				revert = 0
 				direction = LEFT
 				callsub left
+				
+			elseif  (prox.ground.delta[0] > TABLE) then
+				checking = 0
+				SOSused = 0
+				revert = 0
+				direction = RIGHT
+				callsub right
 			elseif (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE) then
-				timer.period[0] = 500
+				timer.period[0] = 700
 				checking = 1
 			end
 		end
@@ -119,13 +119,14 @@ onevent prox
 	##################
 		if  state != CURVE and state != AVOID and state != TEMPFORWARD and state != FORWARD1 then
 			if prox.horizontal[2] > TURNINGP then
+				direction = LEFT
 				state = AVOID
 				timer.period[0]=TURN_PERIOD
 				callsub hard
 				
 			elseif prox.horizontal[4] > TURNINGP-1500 or prox.horizontal[3] > TURNINGP - 1500 then
 				state = AVOID
-				direction = RIGHT
+				direction = LEFT
 				timer.period[0] = TURN_PERIOD
 				callsub hard
 			elseif  prox.horizontal[1] > TURNINGP - 1500 or prox.horizontal[0] > TURNINGP-1500 then
