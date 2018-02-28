@@ -42,6 +42,7 @@ var checking = 0
 var direction
 var SOSused
 var revert = 0
+var tempTimer = 0
 motor.left.target = 0
 motor.right.target = 0
 
@@ -140,52 +141,41 @@ onevent prox
 	
 	if (prox.ground.delta[1] &lt; THRESHOLD or prox.ground.delta[0] &lt; THRESHOLD)then
 		if  state == FORWARD1 or state == CURVE or state == LOST then
-			
-			revert = 1
-			checking = 0
-			call leds.top(13,255,149)#light blue
-			#this will ensure that its going the right way
-			if  state == LOST then
-				timer.period[0] = 500
+			if  state == FORWARD1 and (prox.ground.delta[1] &lt; THRESHOLD or prox.ground.delta[0] &lt; THRESHOLD) then
+				timer.period[0] = 100
+				tempTimer = 1
 			else
-				timer.period[0] = 1000
+				tempTimer = 0
 			end
-			if  state == LOST then
-				if  direction == LEFT then
-					direction = RIGHT
-				elseif  direction == RIGHT then
-					direction = LEFT
+			
+			if  tempTimer != 1 then
+				revert = 1
+				checking = 0
+				call leds.top(13,255,149)#light blue
+				#this will ensure that its going the right way
+				if  state == LOST then
+					timer.period[0] = 500
+				else
+					timer.period[0] = 1000
 				end
-			end
-			state = FIX
-			if direction == LEFT then
-				callsub left
-			elseif direction == RIGHT then
-				callsub right
+				if  state == LOST then
+					if  direction == LEFT then
+						direction = RIGHT
+					elseif  direction == RIGHT then
+						direction = LEFT
+					end
+				end
+				state = FIX
+				if direction == LEFT then
+					callsub left
+				elseif direction == RIGHT then
+					callsub right
 			end
 			
 
 			state = NORMAL
-			
-		#elseif  state == LOST then
-		#	revert = 1
-		#	checking = 0
-		#	call leds.top(13,255,149) #light blue
-		#	state = FIX
-		#	if direction == LEFT then
-		#		motor.left.target= -50
-		#		motor.right.target= TARGET
-		#		direction = RIGHT
-		#	elseif direction == RIGHT then
-		#		motor.left.target= TARGET
-		#		motor.right.target= -50
-		#		direction = LEFT
-		#	end
-		#	timer.period[0] = 300
-		#	state = NORMAL
-			
+			end
 		end
-		
 	end
 		
 		
@@ -220,6 +210,15 @@ onevent timer0 #used for 90
 		elseif  direction == RIGHT then
 			state = CURVE
 			callsub curveRight
+		end
+	elseif  tempTimer == 1 then
+		tempTimer = 0
+		if  direction == LEFT then
+			direction = RIGHT
+			callsub right
+		elseif direction == RIGHT then
+			direction = LEFT
+			callsub left
 		end
 	elseif  revert == 1 then
 		revert = 0
