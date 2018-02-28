@@ -57,12 +57,12 @@ sub stopped
 	revert = 0
 	call leds.top(0,0,0)#no colour
 sub right #soft right
-	motor.left.target = TARGET
-	motor.right.target = TARGET-300
+	motor.left.target = TARGET - 200
+	motor.right.target = TARGET - 300
 	call leds.top(255, 179, 76)#orange
 sub left #soft left
-	motor.left.target = TARGET-300
-	motor.right.target = TARGET
+	motor.left.target = TARGET - 300
+	motor.right.target = TARGET - 200
 	call leds.top(232,12,229)#purple
 sub hard
 	motor.left.target = TARGET * direction
@@ -119,7 +119,7 @@ onevent prox
 	
 	##################
 		if  state != CURVE and state != AVOID and state != TEMPFORWARD and state != FORWARD1 then
-			if prox.horizontal[2] > TURNINGP then
+			if prox.horizontal[2] > TURNINGP - 1500 then
 				direction = LEFT
 				state = AVOID
 				timer.period[0]=TURN_PERIOD
