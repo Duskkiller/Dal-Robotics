@@ -1,0 +1,206 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+
+
+<!--list of constants-->
+<constant value="0" name="STOPPED"/>
+<constant value="1" name="NORMAL"/>
+<constant value="2" name="AVOID"/>
+<constant value="3" name="TEMPFORWARD"/>
+<constant value="4" name="CURVE"/>
+<constant value="5" name="LOST"/>
+<constant value="-1" name="LEFT"/>
+<constant value="1" name="RIGHT"/>
+<constant value="450" name="TARGET"/>
+<constant value="200" name="TARGET2"/>
+<constant value="750" name="TABLE"/>
+<constant value="250" name="THRESHOLD"/>
+<constant value="2500" name="TURNINGP"/>
+<constant value="500" name="TURN_PERIOD"/>
+
+
+<!--show keywords state-->
+<keywords flag="true"/>
+
+
+<!--node thymio-II-->
+<node nodeId="1" name="thymio-II">#written by Liam Hebert, edited and revised by Logan Sutherland
+
+################START OF VARIABLES################
+
+var state = STOPPED #this is used to control if statements
+var checking = 0 #this is used to activate the lost state
+var direction #this is used to control which direction the robot should turn and controls the hard turns
+var revert = 0 #this is used to create a delay when the robot returns to the line
+
+################END OF VARIABLES################
+#stopped default
+motor.left.target = 0
+motor.right.target = 0
+
+################START OF SUBROUTINES################
+
+sub stopped
+	motor.left.target = 0
+	motor.right.target = 0
+	
+	#ensures that the robot wont boot back into the lost state when the robot is restarted.
+	revert = 0
+	checking = 0
+	call leds.top(0,0,0)#no colour
+	
+#these two subs are used for normal line following and when the robot returns to the line
+sub right #soft right
+	motor.left.target = TARGET
+	motor.right.target = TARGET-300
+	call leds.top(255, 179, 76)#orange
+sub left #soft left
+	motor.left.target = TARGET-300
+	motor.right.target = TARGET
+	call leds.top(232,12,229)#purple
+
+#used in the inital turn away from the block. Direction is set to either -1 or 1 depending on the constant (-1 is left, 1 is right)
+sub hard
+	motor.left.target = TARGET * direction
+	motor.right.target = -TARGET * direction
+	call leds.top(255, 255, 76)#yellow
+
+#used for the curve around the block
+sub curveLeft
+	motor.left.target = TARGET+200
+	motor.right.target = TARGET2 
+sub curveRight
+	motor.left.target = TARGET2
+	motor.right.target = TARGET+200
+
+sub lost #Makes the robot turn in a slow circle depending on the direction. Tight
+	call leds.top(255,0,0) #red
+	if direction == LEFT then	
+		motor.left.target=TARGET - 300
+		motor.right.target=TARGET 
+	elseif direction == RIGHT then
+		motor.left.target=TARGET 
+		motor.right.target=TARGET - 300
+	end	
+
+################END OF SUBROUTINES################
+
+################START OF EVENTS################
+
+#starts the robot
+onevent button.forward
+	state = NORMAL
+	direction = LEFT
+	callsub left
+#stops the robot and resets variables
+onevent button.backward
+	state = STOPPED
+	callsub stopped
+
+##PROX EVENT START##
+onevent prox 
+	if  state !=STOPPED then #prevents robot from moving when in the stopped state
+		if  (state == NORMAL and revert != 1) then #if the robot is not returning to the line or curving
+			#these two following if statements control the linefollowing. Turns away from the sensor on the table. 
+			if  (prox.ground.delta[1] > TABLE) then
+				#resets lost state and fixing variables
+				checking = 0
+				revert = 0
+				direction = LEFT
+				callsub left
+				
+			elseif  (prox.ground.delta[0] > TABLE) then
+				#resets lost state and fixing variables
+				checking = 0
+				revert = 0
+				direction = RIGHT
+				callsub right
+			
+			#lost state start
+			elseif (prox.ground.delta[0] > TABLE and prox.ground.delta[1] > TABLE) then
+				timer.period[0] = 700 #delay until lost state kicks in. Useful for curves if the curve is sharp
+				checking = 1 #allows the timer to activate lost state
+			end
+		end
+	
+		#these following if statements are used to avoid a block
+		if  state == NORMAL then #if not already curving around a block. Works when trying to revert (but should hopefully never happen)
+			if prox.horizontal[2] > TURNINGP then #middle sensor
+				direction = RIGHT #also configures sub hard
+				state = AVOID
+				timer.period[0]=TURN_PERIOD #100o~ turn
+				callsub hard
+				
+			elseif prox.horizontal[3] > TURNINGP - 1500 then #right sensor
+				state = AVOID
+				direction = LEFT
+				timer.period[0] = TURN_PERIOD - 150 #turns less because already at an angle of the block
+				callsub hard
+			elseif  prox.horizontal[1] > TURNINGP - 1500 then #left sensor
+				state = AVOID
+				direction = LEFT
+				timer.period[0] = TURN_PERIOD - 150
+				callsub hard
+			end
+		end
+	
+	#return to the line if statements
+		if (prox.ground.delta[1] &lt; THRESHOLD or prox.ground.delta[0] &lt; THRESHOLD)then #when either bottom sensor senses the line
+			if  state == CURVE or state == LOST then #if returning from a curve or lost state
+				revert = 1 #fixing
+				checking = 0 #not lost
+				call leds.top(13,255,149)#light blue
+				timer.period[0] = 1000 #prevents linefollow from kicking in too early, allows robot to resettle on the line
+				if  state == LOST then #causes the robot to go the right direction after returning from the lost state
+					if  direction == LEFT then
+						direction = RIGHT
+					elseif  direction == RIGHT then
+						direction = LEFT
+					end
+				end 
+				#curves back to the line
+				if direction == LEFT then 
+					callsub left
+				elseif direction == RIGHT then
+					callsub right
+				end
+				state = NORMAL #allows line follow (when timer is up) and curving around the line
+			end
+		end
+	end
+##PROX EVENT END##
+	
+	
+##TIMER EVENT START##
+onevent timer0 
+	#two following if statements are used to avoid the obstacle
+	if  state == AVOID then #after inital turn to the obstacle, go forward for a little. Gives room for the curve
+		motor.left.target = TARGET
+		motor.right.target = TARGET
+		timer.period[0] = 600
+		state = TEMPFORWARD
+	elseif  state == TEMPFORWARD then
+		revert = 0 #ensures lost state wont activate mid turn
+		#determines which direction to curve
+			if  direction == LEFT then
+				callsub curveLeft
+			elseif  direction == RIGHT then
+				callsub curveRight
+			end
+		state = CURVE
+	elseif  revert == 1 then #allows line follow to work after ajustment
+		revert = 0
+	elseif checking == 1 and state == NORMAL then #grace period for line follow, kick in lost state
+		state = LOST
+		callsub lost
+	end
+##TIMER EVENT END##
+
+################END OF EVENTS################
+#phew that was alot of work</node>
+
+
+</network>
